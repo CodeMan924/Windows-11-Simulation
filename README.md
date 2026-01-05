@@ -1,20 +1,33 @@
-This project was made with google ai studio:
-https://aistudio.google.com/apps
 
+# Windows 11 Web Simulation
 
-Features:
+A high-fidelity Windows 11 experience built with React, Tailwind CSS, and Gemini AI.
 
-Copilot powered by Gemini.
-Batch scripts can be run on the simulation.
-Take notes and save them.
-Create your own folders.
-Terminal with all windows commands.
+## 🚀 Quick Start (No Installation Needed)
+This project is designed to run directly in the browser. If you have a local static server (like the "Live Server" extension in VS Code), you can simply open `index.html`. All dependencies are loaded automatically via the `importmap`.
 
-Please note:
+## 🛠️ Local Development (Standard Setup)
+To install dependencies for a professional build environment, ensure you have [Node.js](https://nodejs.org/) installed, then run:
 
-Some apps may not work since some were not made yet.
-Edge works but only websites like wikipedia will work.
-When testing I did not find any bugs but if you did please report here in my site: https://sites.google.com/view/windows11simulator-codeman924/home
+```bash
+npm install
+```
 
+### Running the Development Server
+```bash
+npm run dev
+```
 
+### Environment Setup
+For the Copilot feature to work, the application expects an environment variable `API_KEY` (your Google Gemini API Key). 
 
+- **In the current web context:** It is automatically injected.
+- **In a local Vite setup:** You may need to use a `.env` file and adjust the reference from `process.env.API_KEY` to `import.meta.env.VITE_API_KEY`.
+
+## 🎨 Features
+- **Functional Taskbar & Start Menu**
+- **Window Management** (Drag, Maximize, Minimize, Snap)
+- **Settings App:** Full theme color personalization and Dark/Light mode support.
+- **Explorer:** Functional file navigation.
+- **Notepad:** File saving and "Find" functionality.
+- **Copilot:** AI assistant powered by Gemini.
