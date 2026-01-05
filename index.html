@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Win11 Web Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --win-ease: cubic-bezier(0.1, 0.9, 0.2, 1);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            margin: 0;
+            user-select: none;
+            background: #000;
+            transition: background-color 0.5s ease;
+        }
+        .mica {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px) saturate(180%);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+        .dark-theme .mica {
+            background: rgba(28, 28, 28, 0.75);
+            border-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        .window-shadow {
+            box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Start Menu Animation */
+        @keyframes startIn {
+            from { transform: translateY(20px) scale(0.96); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .animate-start {
+            animation: startIn 0.35s var(--win-ease) forwards;
+        }
+
+        /* Window Opening Animation */
+        @keyframes windowOpen {
+            from { transform: scale(0.92) translateY(30px); opacity: 0; }
+            to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .animate-window-open {
+            animation: windowOpen 0.4s var(--win-ease) forwards;
+        }
+
+        /* Taskbar Icon Bounce */
+        .taskbar-icon:hover img, .taskbar-icon:hover svg {
+            transform: scale(1.15) translateY(-2px);
+        }
+        .taskbar-icon:active img, .taskbar-icon:active svg {
+            transform: scale(0.9) translateY(0);
+        }
+        .taskbar-icon img, .taskbar-icon svg {
+            transition: transform 0.2s var(--win-ease);
+        }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .dark-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* App Item Hover */
+        .app-item-hover {
+            transition: all 0.2s var(--win-ease);
+        }
+        .app-item-hover:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        .dark-theme .app-item-hover:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+</head>
+<body>
+    <div id="root"></div>
+</body>
+</html>
