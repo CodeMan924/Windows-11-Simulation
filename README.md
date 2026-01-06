@@ -32,4 +32,4 @@ For the Copilot feature to work, the application expects an environment variable
 - **Notepad:** File saving and "Find" functionality.
 - **Copilot:** AI assistant powered by Gemini.
 
-- To report bugs please visit: https://sites.google.com/view/windows11simulator-codeman924/home
+ To report bugs please visit: https://sites.google.com/view/windows11simulator-codeman924/home
