@@ -7,9 +7,10 @@ interface TerminalProps {
   files: VirtualFile[];
   initialScript?: VirtualFile;
   onClose?: () => void;
+  onLogOff: () => void;
 }
 
-const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onClose }) => {
+const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onClose, onLogOff }) => {
   const [currentDirKey, setCurrentDirKey] = useState<'Documents' | 'Desktop' | 'Downloads'>(initialScript?.parentFolder || 'Documents');
   const currentDir = `C:\\Users\\${userName}\\${currentDirKey}`;
   const [history, setHistory] = useState<string[]>([
@@ -70,7 +71,8 @@ const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onC
             'SYSTEMINFO     Displays system information.',
             'VER            Displays Windows version.',
             'WHOAMI         Displays current user.',
-            'PAUSE          Suspends processing of a batch file.'
+            'PAUSE          Suspends processing of a batch file.',
+            'LOGOFF         Logs off the current user.'
           ];
           break;
         case 'cd':
@@ -109,13 +111,17 @@ const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onC
         case 'systeminfo':
           output = ['Host Name: WIN-SIM-PRO', 'OS Name: Microsoft Windows 11 Pro', 'Registered Owner: ' + userName];
           break;
+        case 'logoff':
+          output = ['Logging off...'];
+          setTimeout(onLogOff, 800);
+          break;
         default:
           output = [`'${baseCmd}' is not recognized as an internal or external command,`, 'operable program or batch file.'];
       }
     }
 
     return { output, halt };
-  }, [files, currentDirKey, userName, currentDir]);
+  }, [files, currentDirKey, userName, currentDir, onLogOff]);
 
   // Main execution loop for pending script lines
   useEffect(() => {

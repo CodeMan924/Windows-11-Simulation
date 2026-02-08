@@ -13,7 +13,7 @@ const Notepad: React.FC<NotepadProps> = ({ initialFile, saveFile }) => {
   const [fileName, setFileName] = useState(initialFile?.name || 'Untitled');
   const [extension, setExtension] = useState(initialFile?.extension || 'txt');
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
-  const [selectedFolder, setSelectedFolder] = useState<'Documents' | 'Desktop' | 'Downloads'>('Documents');
+  const [selectedFolder, setSelectedFolder] = useState<string>(initialFile?.parentFolder || 'Documents');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved'>('idle');
 
   // Find Feature States
@@ -28,6 +28,7 @@ const Notepad: React.FC<NotepadProps> = ({ initialFile, saveFile }) => {
       setContent(initialFile.content);
       setFileName(initialFile.name);
       setExtension(initialFile.extension);
+      setSelectedFolder(initialFile.parentFolder);
     }
   }, [initialFile]);
 

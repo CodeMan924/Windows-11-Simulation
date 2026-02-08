@@ -80,7 +80,7 @@ const Word: React.FC<WordProps> = ({ initialFile, files, saveFile, onClose }) =>
   
   // Save Dialog State
   const [saveName, setSaveName] = useState(fileName);
-  const [saveLocation, setSaveLocation] = useState<'Documents' | 'Desktop' | 'Downloads'>('Documents');
+  const [saveLocation, setSaveLocation] = useState<string>('Documents');
 
   // Initialize content once on mount to prevent cursor jumping
   useEffect(() => {

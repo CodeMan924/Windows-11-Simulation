@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useRef } from 'react';
 import Taskbar from './components/Taskbar';
 import StartMenu from './components/StartMenu';
@@ -24,7 +25,8 @@ const App: React.FC = () => {
 
   // Global File System
   const [files, setFiles] = useState<VirtualFile[]>([
-    { id: 'initial-readme', name: 'readme', content: 'Welcome to Windows 11 Simulation!', parentFolder: 'Documents', extension: 'txt', type: 'file' }
+    { id: 'initial-readme', name: 'readme', content: 'Welcome to Windows 11 Simulation!', parentFolder: 'Documents', extension: 'txt', type: 'file' },
+    { id: 'initial-projects', name: 'Projects', content: '', parentFolder: 'Documents', extension: '', type: 'folder' }
   ]);
 
   const [windows, setWindows] = useState<WindowState[]>([]);
@@ -50,6 +52,12 @@ const App: React.FC = () => {
       setBootPhase('desktop');
     }, 2000);
   };
+
+  const handleLogOff = useCallback(() => {
+    setBootPhase('login');
+    setCurrentUser(null);
+    setWindows([]);
+  }, []);
 
   const closeMenus = useCallback(() => {
     setIsStartOpen(false);
@@ -97,12 +105,24 @@ const App: React.FC = () => {
 
   const saveFile = (file: VirtualFile) => {
     setFiles(prev => {
-      const exists = prev.find(f => f.name === file.name && f.parentFolder === file.parentFolder);
+      const exists = prev.find(f => f.name === file.name && f.parentFolder === file.parentFolder && f.type === file.type);
       if (exists) {
         return prev.map(f => f.id === exists.id ? file : f);
       }
       return [...prev, file];
     });
+  };
+
+  const addFolder = (name: string, parentId: string) => {
+    const newFolder: VirtualFile = {
+      id: Math.random().toString(36).substr(2, 9),
+      name,
+      content: '',
+      parentFolder: parentId,
+      extension: '',
+      type: 'folder'
+    };
+    setFiles(prev => [...prev, newFolder]);
   };
 
   const renderAppContent = (win: WindowState) => {
@@ -115,12 +135,12 @@ const App: React.FC = () => {
     };
 
     switch (win.appId) {
-      case 'explorer': return <Explorer {...commonProps} />;
+      case 'explorer': return <Explorer {...commonProps} addFolder={addFolder} />;
       case 'notepad': return <Notepad {...commonProps} initialFile={win.payload} />;
       case 'word': return <Word {...commonProps} initialFile={win.payload} />;
       case 'copilot': return <Copilot />;
       case 'browser': return <Browser />;
-      case 'terminal': return <Terminal {...commonProps} initialScript={win.payload} />;
+      case 'terminal': return <Terminal {...commonProps} initialScript={win.payload} onLogOff={handleLogOff} />;
       case 'taskmanager': return <TaskManager windows={windows} closeWindow={closeWindow} />;
       case 'settings': return (
         <Settings 
