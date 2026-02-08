@@ -1,9 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ChevronRight, Home, Download, Image, 
   FileText, Star, ArrowUp, Search, FolderPlus,
-  LayoutGrid, List, FileCode, Plus
+  LayoutGrid, List, FileCode, Plus, Monitor,
+  Type, Terminal, Edit2, Check, X
 } from 'lucide-react';
 import { VirtualFile, AppID } from '../types';
 import { getIcon } from '../constants';
@@ -12,14 +13,28 @@ interface ExplorerProps {
   files: VirtualFile[];
   openApp: (appId: AppID, payload?: any) => void;
   addFolder: (name: string, parentId: string) => void;
+  renameFile: (id: string, newName: string) => void;
 }
 
-const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder }) => {
+const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder, renameFile }) => {
   const [currentFolder, setCurrentFolder] = useState<string>('Home');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [history, setHistory] = useState<string[]>(['Home']);
   const [historyIndex, setHistoryIndex] = useState(0);
+  
+  // New State for selection
+  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
+  
+  // State for renaming
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+
+  // Reset rename state when selection changes
+  useEffect(() => {
+    setIsRenaming(false);
+    setRenameValue('');
+  }, [selectedFileId]);
 
   const navItems = [
     { icon: <Star size={16} className="text-yellow-500" />, label: 'Favorites', key: 'Home' },
@@ -35,10 +50,10 @@ const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder }) => {
     return matchesFolder && matchesSearch;
   });
 
-  const getFileIcon = (file: VirtualFile) => {
-    if (file.type === 'folder') return getIcon('folder', 32);
-    if (file.type === 'batch') return <FileCode size={32} className="text-orange-500" />;
-    return <FileText size={32} className="text-blue-400" />;
+  const getFileIcon = (file: VirtualFile, size = 32) => {
+    if (file.type === 'folder') return getIcon('folder', size);
+    if (file.type === 'batch') return <FileCode size={size} className="text-orange-500" />;
+    return <FileText size={size} className="text-blue-400" />;
   };
 
   const handleNavigate = (newFolder: string) => {
@@ -47,12 +62,14 @@ const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder }) => {
     setHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
     setCurrentFolder(newFolder);
+    setSelectedFileId(null); // Clear selection on navigation
   };
 
   const handleBack = () => {
     if (historyIndex > 0) {
       setHistoryIndex(prev => prev - 1);
       setCurrentFolder(history[historyIndex - 1]);
+      setSelectedFileId(null);
     }
   };
 
@@ -60,25 +77,22 @@ const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder }) => {
     if (historyIndex < history.length - 1) {
       setHistoryIndex(prev => prev + 1);
       setCurrentFolder(history[historyIndex + 1]);
+      setSelectedFileId(null);
     }
   };
 
   const handleUp = () => {
-    // If current is Home, do nothing
     if (currentFolder === 'Home') return;
 
-    // Check if current folder is a root one
     if (['Documents', 'Downloads', 'Desktop'].includes(currentFolder)) {
       handleNavigate('Home');
       return;
     }
 
-    // Otherwise find the parent object
     const currentFolderObj = files.find(f => f.id === currentFolder);
     if (currentFolderObj) {
       handleNavigate(currentFolderObj.parentFolder);
     } else {
-      // Fallback
       handleNavigate('Home');
     }
   };
@@ -94,11 +108,10 @@ const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder }) => {
   };
 
   const createNewFolder = () => {
-    if (currentFolder === 'Home') return; // Prevent creating in root aggregation
+    if (currentFolder === 'Home') return;
     const baseName = "New Folder";
     let name = baseName;
     let count = 1;
-    // Simple collision avoidance
     while (files.some(f => f.parentFolder === currentFolder && f.name === name)) {
       count++;
       name = `${baseName} (${count})`;
@@ -106,12 +119,26 @@ const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder }) => {
     addFolder(name, currentFolder);
   };
 
+  const handleRenameSubmit = () => {
+    if (selectedFileId && renameValue.trim()) {
+      renameFile(selectedFileId, renameValue.trim());
+      setIsRenaming(false);
+    }
+  };
+
   const currentFolderName = ['Home', 'Documents', 'Downloads', 'Desktop'].includes(currentFolder) 
     ? currentFolder 
     : (files.find(f => f.id === currentFolder)?.name || currentFolder);
 
+  const selectedFile = files.find(f => f.id === selectedFileId);
+
+  // Helper to check if file is a document type that supports Open With options
+  const isDocument = (file: VirtualFile) => {
+    return file.type === 'file' || file.type === 'batch'; 
+  };
+
   return (
-    <div className="flex flex-col h-full bg-white text-slate-900 select-text">
+    <div className="flex flex-col h-full bg-white text-slate-900 select-none">
       {/* Header */}
       <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border-b border-gray-200">
          <div className="flex gap-1">
@@ -170,13 +197,12 @@ const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder }) => {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <div className="w-48 bg-gray-50 p-2 space-y-1 border-r border-gray-200">
+        <div className="w-48 bg-gray-50 p-2 space-y-1 border-r border-gray-200 flex-shrink-0">
           {navItems.map((item, i) => (
             <div 
               key={i} 
               onClick={() => {
                 handleNavigate(item.key);
-                // Reset history stack when clicking sidebar for simplicity in this demo
                 setHistory([item.key]); 
                 setHistoryIndex(0);
               }}
@@ -188,55 +214,207 @@ const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder }) => {
           ))}
         </div>
 
-        {/* Content */}
-        <div className="flex-1 p-4 overflow-y-auto">
-          <div className="mb-4 flex items-center justify-between">
-             <h2 className="text-sm font-bold text-gray-600">{currentFolderName}</h2>
-             <div className="flex gap-2">
-               <button onClick={() => setViewMode('grid')} className="p-1 hover:bg-gray-100 rounded"><LayoutGrid size={16} /></button>
-               <button onClick={() => setViewMode('list')} className="p-1 hover:bg-gray-100 rounded"><List size={16} /></button>
-             </div>
+        {/* Content Area - Split between Files and Preview */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Files Grid */}
+          <div 
+            className="flex-1 p-4 overflow-y-auto"
+            onClick={() => setSelectedFileId(null)} // Click background to deselect
+          >
+            <div className="mb-4 flex items-center justify-between">
+               <h2 className="text-sm font-bold text-gray-600">{currentFolderName}</h2>
+               <div className="flex gap-2">
+                 <button onClick={(e) => { e.stopPropagation(); setViewMode('grid'); }} className="p-1 hover:bg-gray-100 rounded"><LayoutGrid size={16} /></button>
+                 <button onClick={(e) => { e.stopPropagation(); setViewMode('list'); }} className="p-1 hover:bg-gray-100 rounded"><List size={16} /></button>
+               </div>
+            </div>
+
+            <div className={`grid gap-2 ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5' : 'grid-cols-1'}`}>
+              {/* Show fixed folders if in Home */}
+              {currentFolder === 'Home' && (
+                <>
+                   <div 
+                     onClick={(e) => { e.stopPropagation(); handleNavigate('Documents'); }}
+                     className={`group cursor-pointer rounded border p-2 ${viewMode === 'grid' ? 'flex flex-col items-center gap-2' : 'flex items-center gap-3'} border-transparent hover:bg-blue-50 hover:border-blue-100`}
+                   >
+                     {getIcon('folder', 32)}
+                     <span className="text-sm text-center line-clamp-1">Documents</span>
+                   </div>
+                   <div 
+                     onClick={(e) => { e.stopPropagation(); handleNavigate('Downloads'); }}
+                     className={`group cursor-pointer rounded border p-2 ${viewMode === 'grid' ? 'flex flex-col items-center gap-2' : 'flex items-center gap-3'} border-transparent hover:bg-blue-50 hover:border-blue-100`}
+                   >
+                     {getIcon('folder', 32)}
+                     <span className="text-sm text-center line-clamp-1">Downloads</span>
+                   </div>
+                </>
+              )}
+
+              {filteredFiles.map(file => (
+                <div 
+                  key={file.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedFileId(file.id);
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    handleFileOpen(file);
+                  }}
+                  className={`group cursor-pointer rounded border p-2 ${
+                    viewMode === 'grid' ? 'flex flex-col items-center gap-2' : 'flex items-center gap-3'
+                  } ${
+                    selectedFileId === file.id 
+                      ? 'bg-blue-100 border-blue-300' 
+                      : 'border-transparent hover:bg-blue-50 hover:border-blue-100'
+                  }`}
+                >
+                  {getFileIcon(file)}
+                  <span className="text-sm text-center line-clamp-1 select-none">{file.name}{file.type !== 'folder' && file.extension ? `.${file.extension}` : ''}</span>
+                </div>
+              ))}
+              
+              {filteredFiles.length === 0 && currentFolder !== 'Home' && (
+                <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-40">
+                  <FolderPlus size={48} />
+                  <p className="text-sm mt-2">Empty folder</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className={`grid gap-2 ${viewMode === 'grid' ? 'grid-cols-2 sm:grid-cols-4 md:grid-cols-6' : 'grid-cols-1'}`}>
-            {/* Show fixed folders if in Home */}
-            {currentFolder === 'Home' && (
-              <>
-                 <div 
-                   onClick={() => handleNavigate('Documents')}
-                   className={`group cursor-pointer rounded border border-transparent hover:bg-blue-50 hover:border-blue-100 p-2 ${viewMode === 'grid' ? 'flex flex-col items-center gap-2' : 'flex items-center gap-3'}`}
-                 >
-                   {getIcon('folder', 32)}
-                   <span className="text-sm text-center line-clamp-1">Documents</span>
+          {/* Preview Panel (Visible when a file is selected) */}
+          {selectedFile && (
+            <div className="w-72 bg-gray-50 border-l border-gray-200 flex flex-col p-6 animate-item overflow-y-auto">
+              <div className="flex flex-col items-center text-center mb-6">
+                 <div className="mb-4 transform scale-125">
+                    {getFileIcon(selectedFile, 64)}
                  </div>
-                 <div 
-                   onClick={() => handleNavigate('Downloads')}
-                   className={`group cursor-pointer rounded border border-transparent hover:bg-blue-50 hover:border-blue-100 p-2 ${viewMode === 'grid' ? 'flex flex-col items-center gap-2' : 'flex items-center gap-3'}`}
-                 >
-                   {getIcon('folder', 32)}
-                   <span className="text-sm text-center line-clamp-1">Downloads</span>
-                 </div>
-              </>
-            )}
+                 
+                 {/* Title / Rename Input */}
+                 {isRenaming ? (
+                    <div className="flex flex-col items-center gap-2 w-full animate-item">
+                      <input 
+                        value={renameValue} 
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        className="border border-blue-500 rounded px-2 py-1 text-center w-full outline-none text-sm"
+                        autoFocus
+                        onKeyDown={(e) => {
+                           if (e.key === 'Enter') handleRenameSubmit();
+                           if (e.key === 'Escape') setIsRenaming(false);
+                        }}
+                      />
+                      <div className="flex gap-2">
+                          <button 
+                            onClick={handleRenameSubmit} 
+                            className="p-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                            title="Save"
+                          >
+                            <Check size={14} />
+                          </button>
+                          <button 
+                            onClick={() => setIsRenaming(false)} 
+                            className="p-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition-colors"
+                            title="Cancel"
+                          >
+                            <X size={14} />
+                          </button>
+                      </div>
+                    </div>
+                 ) : (
+                   <h3 className="text-lg font-semibold text-gray-800 break-all">
+                      {selectedFile.name}{selectedFile.type !== 'folder' ? `.${selectedFile.extension}` : ''}
+                   </h3>
+                 )}
 
-            {filteredFiles.map(file => (
-              <div 
-                key={file.id} 
-                onDoubleClick={() => handleFileOpen(file)}
-                className={`group cursor-pointer rounded border border-transparent hover:bg-blue-50 hover:border-blue-100 p-2 ${viewMode === 'grid' ? 'flex flex-col items-center gap-2' : 'flex items-center gap-3'}`}
-              >
-                {getFileIcon(file)}
-                <span className="text-sm text-center line-clamp-1">{file.name}{file.type !== 'folder' && file.extension ? `.${file.extension}` : ''}</span>
+                 <p className="text-xs text-gray-500 mt-1 uppercase font-bold tracking-wider">
+                    {selectedFile.type === 'folder' ? 'File Folder' : `${selectedFile.extension.toUpperCase()} File`}
+                 </p>
               </div>
-            ))}
-            
-            {filteredFiles.length === 0 && currentFolder !== 'Home' && (
-              <div className="col-span-full flex flex-col items-center justify-center py-20 opacity-40">
-                <FolderPlus size={48} />
-                <p className="text-sm mt-2">Empty folder</p>
+
+              {/* Preview Content */}
+              {selectedFile.type !== 'folder' && (
+                <div className="bg-white border border-gray-200 rounded-lg p-3 mb-6 shadow-sm min-h-[120px] max-h-[200px] overflow-hidden relative">
+                   <p className="text-xs text-gray-500 font-mono whitespace-pre-wrap break-words">
+                      {selectedFile.content || <span className="italic opacity-50">No content available for preview.</span>}
+                   </p>
+                   {selectedFile.content && (
+                     <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-white to-transparent" />
+                   )}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="space-y-3">
+                 {/* Rename Button for Folders */}
+                 {selectedFile.type === 'folder' && !isRenaming && (
+                    <button 
+                       onClick={() => {
+                          setIsRenaming(true);
+                          setRenameValue(selectedFile.name);
+                       }}
+                       className="w-full flex items-center gap-3 px-4 py-2 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-300 rounded-lg transition-all shadow-sm group"
+                     >
+                        <div className="bg-orange-500 text-white p-1 rounded">
+                           <Edit2 size={16} />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">Rename Folder</span>
+                     </button>
+                 )}
+
+                 {isDocument(selectedFile) && (
+                   <>
+                     <button 
+                       onClick={() => openApp('word', selectedFile)}
+                       className="w-full flex items-center gap-3 px-4 py-2 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-300 rounded-lg transition-all shadow-sm group"
+                     >
+                        <div className="bg-blue-700 text-white p-1 rounded">
+                           <FileText size={16} />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">Open with Word</span>
+                     </button>
+
+                     <button 
+                       onClick={() => openApp('notepad', selectedFile)}
+                       className="w-full flex items-center gap-3 px-4 py-2 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-300 rounded-lg transition-all shadow-sm group"
+                     >
+                        <div className="bg-slate-700 text-white p-1 rounded">
+                           <Type size={16} />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">Open with Notepad</span>
+                     </button>
+                   </>
+                 )}
+                 
+                 {selectedFile.type === 'batch' && (
+                    <button 
+                       onClick={() => openApp('terminal', selectedFile)}
+                       className="w-full flex items-center gap-3 px-4 py-2 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-300 rounded-lg transition-all shadow-sm group"
+                     >
+                        <div className="bg-black text-white p-1 rounded">
+                           <Terminal size={16} />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">Run in Terminal</span>
+                     </button>
+                 )}
+
+                 {/* Default Open for Folders */}
+                 {selectedFile.type === 'folder' && (
+                    <button 
+                       onClick={() => handleNavigate(selectedFile.id)}
+                       className="w-full flex items-center gap-3 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-all shadow-sm justify-center"
+                     >
+                        <span className="text-sm font-medium">Open Folder</span>
+                     </button>
+                 )}
               </div>
-            )}
-          </div>
+              
+              <div className="mt-auto pt-6 text-xs text-gray-400">
+                 <p>Size: {selectedFile.content.length} bytes</p>
+                 <p>Location: {currentFolder}</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

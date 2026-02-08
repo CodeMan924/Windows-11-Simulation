@@ -113,6 +113,10 @@ const App: React.FC = () => {
     });
   };
 
+  const renameFile = (id: string, newName: string) => {
+    setFiles(prev => prev.map(f => f.id === id ? { ...f, name: newName } : f));
+  };
+
   const addFolder = (name: string, parentId: string) => {
     const newFolder: VirtualFile = {
       id: Math.random().toString(36).substr(2, 9),
@@ -135,7 +139,7 @@ const App: React.FC = () => {
     };
 
     switch (win.appId) {
-      case 'explorer': return <Explorer {...commonProps} addFolder={addFolder} />;
+      case 'explorer': return <Explorer {...commonProps} addFolder={addFolder} renameFile={renameFile} />;
       case 'notepad': return <Notepad {...commonProps} initialFile={win.payload} />;
       case 'word': return <Word {...commonProps} initialFile={win.payload} />;
       case 'copilot': return <Copilot />;
