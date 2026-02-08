@@ -11,18 +11,22 @@ import {
   Monitor,
   Search,
   LayoutGrid,
-  Terminal as TerminalIcon
+  Terminal as TerminalIcon,
+  Activity,
+  File
 } from 'lucide-react';
 import { DesktopIcon } from './types';
 
 export const DESKTOP_ICONS: DesktopIcon[] = [
   { id: 'explorer', label: 'This PC', icon: 'folder' },
   { id: 'browser', label: 'Edge', icon: 'globe' },
+  { id: 'word', label: 'Word', icon: 'word' },
   { id: 'notepad', label: 'Notepad', icon: 'file-text' },
   { id: 'terminal', label: 'Terminal', icon: 'terminal' },
   { id: 'copilot', label: 'Copilot', icon: 'message-square' },
   { id: 'calculator', label: 'Calculator', icon: 'calculator' },
   { id: 'settings', label: 'Settings', icon: 'settings' },
+  { id: 'taskmanager', label: 'Task Manager', icon: 'activity' },
 ];
 
 export const getIcon = (iconName: string, size = 24, className = "") => {
@@ -37,7 +41,13 @@ export const getIcon = (iconName: string, size = 24, className = "") => {
         </svg>
       );
     case 'folder': return <Folder size={size} className={`text-yellow-500 ${className}`} />;
-    case 'file-text': return <FileText size={size} className={`text-blue-500 ${className}`} />;
+    case 'file-text': return <FileText size={size} className={`text-slate-500 ${className}`} />;
+    case 'word': return (
+      <div className={`relative flex items-center justify-center ${className}`}>
+        <FileText size={size} className="text-blue-700" fill="currentColor" fillOpacity={0.1} />
+        <span className="absolute text-[8px] font-bold text-white mb-1">W</span>
+      </div>
+    );
     case 'settings': return <Settings size={size} className={`text-slate-500 ${className}`} />;
     case 'message-square': return <MessageSquare size={size} className={`text-indigo-500 ${className}`} />;
     case 'calculator': return <Calculator size={size} className={`text-emerald-500 ${className}`} />;
@@ -46,6 +56,7 @@ export const getIcon = (iconName: string, size = 24, className = "") => {
     case 'search': return <Search size={size} className={className} />;
     case 'terminal': return <TerminalIcon size={size} className={`text-slate-700 ${className}`} />;
     case 'layout-grid': return <LayoutGrid size={size} className={className} />;
+    case 'activity': return <Activity size={size} className={`text-cyan-500 ${className}`} />;
     default: return <Monitor size={size} className={className} />;
   }
 };

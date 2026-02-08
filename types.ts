@@ -1,5 +1,5 @@
 
-export type AppID = 'explorer' | 'notepad' | 'settings' | 'copilot' | 'calculator' | 'browser' | 'weather' | 'terminal';
+export type AppID = 'explorer' | 'notepad' | 'settings' | 'copilot' | 'calculator' | 'browser' | 'weather' | 'terminal' | 'taskmanager' | 'word';
 
 export interface VirtualFile {
   id: string;

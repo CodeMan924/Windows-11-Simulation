@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import Taskbar from './components/Taskbar';
 import StartMenu from './components/StartMenu';
 import QuickSettings from './components/QuickSettings';
@@ -15,6 +14,8 @@ import Copilot from './apps/Copilot';
 import Browser from './apps/Browser';
 import Terminal from './apps/Terminal';
 import Settings from './apps/Settings';
+import TaskManager from './apps/TaskManager';
+import Word from './apps/Word';
 
 const App: React.FC = () => {
   // OS Boot/Session State
@@ -39,6 +40,8 @@ const App: React.FC = () => {
   const [connectedWifi, setConnectedWifi] = useState("Neighbour's wifi");
   const [accentColor, setAccentColor] = useState('#0078d4');
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  const desktopRef = useRef<HTMLDivElement>(null);
 
   const handleLogin = (user: string) => {
     setCurrentUser(user);
@@ -82,9 +85,9 @@ const App: React.FC = () => {
       isMaximized: false,
       zIndex: maxZIndex + 1,
       x: 100 + (windows.length * 40),
-      y: 100 + (windows.length * 40),
-      width: appId === 'terminal' ? 700 : (appId === 'settings' ? 900 : 800),
-      height: appId === 'terminal' ? 450 : (appId === 'settings' ? 650 : 550),
+      y: 50 + (windows.length * 40),
+      width: appId === 'terminal' ? 700 : (appId === 'settings' ? 900 : (appId === 'taskmanager' ? 600 : (appId === 'word' ? 1000 : 800))),
+      height: appId === 'terminal' ? 450 : (appId === 'settings' ? 650 : (appId === 'taskmanager' ? 500 : (appId === 'word' ? 700 : 550))),
       payload
     };
 
@@ -114,9 +117,11 @@ const App: React.FC = () => {
     switch (win.appId) {
       case 'explorer': return <Explorer {...commonProps} />;
       case 'notepad': return <Notepad {...commonProps} initialFile={win.payload} />;
+      case 'word': return <Word {...commonProps} initialFile={win.payload} />;
       case 'copilot': return <Copilot />;
       case 'browser': return <Browser />;
       case 'terminal': return <Terminal {...commonProps} initialScript={win.payload} />;
+      case 'taskmanager': return <TaskManager windows={windows} closeWindow={closeWindow} />;
       case 'settings': return (
         <Settings 
           {...commonProps}
@@ -160,46 +165,42 @@ const App: React.FC = () => {
 
   return (
     <div 
-      className={`w-screen h-screen relative overflow-hidden bg-cover bg-center transition-all duration-700 animate-start ${isDarkMode ? 'dark-theme' : ''}`}
+      ref={desktopRef}
+      className="w-screen h-screen relative overflow-hidden bg-cover bg-center transition-all duration-500"
       style={{ 
         backgroundImage: `url(${wallpaper})`,
-        // @ts-ignore
-        '--win-accent': accentColor,
-        '--win-accent-soft': `${accentColor}33`
+        filter: `brightness(${brightness}%)`
       }}
       onClick={closeMenus}
+      onContextMenu={(e) => e.preventDefault()}
     >
-      <div 
-        className="fixed inset-0 pointer-events-none z-[99999] bg-black transition-opacity duration-300" 
-        style={{ opacity: (100 - brightness) * 0.008 }} 
-      />
-
-      <div className="grid grid-flow-col grid-rows-[repeat(auto-fill,100px)] gap-2 p-4 w-fit">
+      {/* Desktop Icons */}
+      <div className="absolute top-0 left-0 bottom-12 p-2 flex flex-col flex-wrap gap-2 content-start z-0">
         {DESKTOP_ICONS.map(icon => (
-          <button 
+          <button
             key={icon.id}
+            onClick={(e) => { e.stopPropagation(); }}
             onDoubleClick={() => openApp(icon.id)}
-            className="w-24 h-24 flex flex-col items-center justify-center gap-1 hover:bg-white/10 rounded-md group transition-colors focus:bg-white/20"
+            className="w-20 h-20 flex flex-col items-center justify-center gap-1 rounded hover:bg-white/10 group transition-colors"
           >
-            <div className="drop-shadow-lg group-hover:scale-110 transition-transform">
-              {getIcon(icon.icon, 40)}
+            <div className="group-hover:scale-105 transition-transform">
+               {getIcon(icon.icon, 36)}
             </div>
-            <span className="text-xs text-white drop-shadow-md font-medium px-1 text-center line-clamp-2">
-              {icon.label}
-            </span>
+            <span className="text-xs text-white text-center drop-shadow-md line-clamp-2 leading-tight">{icon.label}</span>
           </button>
         ))}
       </div>
 
+      {/* Windows */}
       {windows.map(win => (
         <WindowFrame
           key={win.id}
           window={win}
           onClose={closeWindow}
-          onMinimize={(id) => setWindows(prev => prev.map(w => w.id === id ? { ...w, isMinimized: !w.isMinimized } : w))}
+          onMinimize={(id) => setWindows(prev => prev.map(w => w.id === id ? { ...w, isMinimized: true } : w))}
           onMaximize={(id) => setWindows(prev => prev.map(w => w.id === id ? { ...w, isMaximized: !w.isMaximized } : w))}
           onFocus={(id) => {
-            setWindows(prev => prev.map(w => w.id === id ? { ...w, zIndex: maxZIndex + 1, isMinimized: false } : w));
+            setWindows(prev => prev.map(w => w.id === id ? { ...w, zIndex: maxZIndex + 1 } : w));
             setMaxZIndex(prev => prev + 1);
           }}
           onMove={(id, x, y) => setWindows(prev => prev.map(w => w.id === id ? { ...w, x, y } : w))}
@@ -209,7 +210,15 @@ const App: React.FC = () => {
         </WindowFrame>
       ))}
 
-      <StartMenu isOpen={isStartOpen} onOpenApp={openApp} userName={currentUser || 'User'} isDarkMode={isDarkMode} />
+      {/* Start Menu */}
+      <StartMenu 
+        isOpen={isStartOpen} 
+        onOpenApp={openApp}
+        userName={currentUser || 'User'}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* Quick Settings */}
       <QuickSettings 
         isOpen={isQuickSettingsOpen} 
         onClose={() => setIsQuickSettingsOpen(false)}
@@ -225,19 +234,28 @@ const App: React.FC = () => {
         accentColor={accentColor}
         isDarkMode={isDarkMode}
       />
-      
+
+      {/* Taskbar */}
       <Taskbar 
         windows={windows} 
-        onStartClick={() => {
-          setIsStartOpen(!isStartOpen);
-          setIsQuickSettingsOpen(false);
-        }} 
-        onQuickSettingsClick={() => {
-          setIsQuickSettingsOpen(!isQuickSettingsOpen);
-          setIsStartOpen(false);
+        onStartClick={() => setIsStartOpen(!isStartOpen)}
+        onAppClick={(id) => {
+          const win = windows.find(w => w.appId === id);
+          if (win) {
+            if (win.isMinimized) {
+              setWindows(prev => prev.map(w => w.id === win.id ? { ...w, isMinimized: false, zIndex: maxZIndex + 1 } : w));
+              setMaxZIndex(prev => prev + 1);
+            } else {
+              // Focus
+              setWindows(prev => prev.map(w => w.id === win.id ? { ...w, zIndex: maxZIndex + 1 } : w));
+              setMaxZIndex(prev => prev + 1);
+            }
+          } else {
+            openApp(id);
+          }
         }}
-        onAppClick={openApp}
-        activeAppId={windows.find(w => !w.isMinimized && w.zIndex === maxZIndex)?.appId}
+        onQuickSettingsClick={() => setIsQuickSettingsOpen(!isQuickSettingsOpen)}
+        activeAppId={windows.sort((a, b) => b.zIndex - a.zIndex)[0]?.appId}
         accentColor={accentColor}
         isDarkMode={isDarkMode}
       />
