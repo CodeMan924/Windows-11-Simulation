@@ -12,9 +12,10 @@ interface TaskbarProps {
   activeAppId?: AppID;
   accentColor: string;
   isDarkMode?: boolean;
+  language?: string;
 }
 
-const Taskbar: React.FC<TaskbarProps> = ({ windows, onStartClick, onAppClick, onQuickSettingsClick, activeAppId, accentColor, isDarkMode }) => {
+const Taskbar: React.FC<TaskbarProps> = ({ windows, onStartClick, onAppClick, onQuickSettingsClick, activeAppId, accentColor, isDarkMode, language = 'en-US' }) => {
   const [time, setTime] = useState(new Date());
 
   useEffect(() => {
@@ -64,8 +65,8 @@ const Taskbar: React.FC<TaskbarProps> = ({ windows, onStartClick, onAppClick, on
         </div>
 
         <div className="flex flex-col items-end cursor-default">
-          <span className="text-xs">{time.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
-          <span className="text-xs">{time.toLocaleDateString()}</span>
+          <span className="text-xs">{time.toLocaleTimeString(language, { hour: 'numeric', minute: '2-digit' })}</span>
+          <span className="text-xs">{time.toLocaleDateString(language)}</span>
         </div>
       </div>
     </div>

@@ -1,10 +1,11 @@
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Taskbar from './components/Taskbar';
 import StartMenu from './components/StartMenu';
 import QuickSettings from './components/QuickSettings';
 import WindowFrame from './components/WindowFrame';
 import LoginScreen from './components/LoginScreen';
+import SetupWizard from './components/SetupWizard';
 import { AppID, WindowState, VirtualFile } from './types';
 import { DESKTOP_ICONS, getIcon } from './constants';
 
@@ -19,15 +20,50 @@ import TaskManager from './apps/TaskManager';
 import Word from './apps/Word';
 
 const App: React.FC = () => {
+  // User Management State
+  // We initialize from localStorage if available to persist accounts, otherwise empty for OOBE
+  const [users, setUsers] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('win11_users');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // OS Boot/Session State
-  const [bootPhase, setBootPhase] = useState<'login' | 'welcome' | 'desktop'>('login');
+  const [bootPhase, setBootPhase] = useState<'setup' | 'login' | 'welcome' | 'desktop'>('setup');
   const [currentUser, setCurrentUser] = useState<string | null>(null);
 
+  // Initialize boot phase based on users
+  useEffect(() => {
+    if (users.length > 0) {
+       setBootPhase('login');
+    } else {
+       setBootPhase('setup');
+    }
+  }, []);
+
   // Global File System
-  const [files, setFiles] = useState<VirtualFile[]>([
-    { id: 'initial-readme', name: 'readme', content: 'Welcome to Windows 11 Simulation!', parentFolder: 'Documents', extension: 'txt', type: 'file' },
-    { id: 'initial-projects', name: 'Projects', content: '', parentFolder: 'Documents', extension: '', type: 'folder' }
-  ]);
+  const [files, setFiles] = useState<VirtualFile[]>(() => {
+    try {
+      const savedFiles = localStorage.getItem('win11_files');
+      if (savedFiles) {
+        return JSON.parse(savedFiles);
+      }
+    } catch (e) {
+      console.error("Failed to load files", e);
+    }
+    return [
+      { id: 'initial-readme', name: 'readme', content: 'Welcome to Windows 11 Simulation!', parentFolder: 'Documents', extension: 'txt', type: 'file' },
+      { id: 'initial-projects', name: 'Projects', content: '', parentFolder: 'Documents', extension: '', type: 'folder' }
+    ];
+  });
+
+  // Persist files whenever they change
+  useEffect(() => {
+    localStorage.setItem('win11_files', JSON.stringify(files));
+  }, [files]);
 
   const [windows, setWindows] = useState<WindowState[]>([]);
   const [isStartOpen, setIsStartOpen] = useState(false);
@@ -42,10 +78,42 @@ const App: React.FC = () => {
   const [connectedWifi, setConnectedWifi] = useState("Neighbour's wifi");
   const [accentColor, setAccentColor] = useState('#0078d4');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // Language State
+  const [language, setLanguage] = useState(() => localStorage.getItem('win11_language') || 'en-US');
+
+  useEffect(() => {
+    localStorage.setItem('win11_language', language);
+  }, [language]);
 
   const desktopRef = useRef<HTMLDivElement>(null);
 
-  const handleLogin = (user: string) => {
+  const handleSetupComplete = (username: string, password?: string) => {
+    const newUsers = [username];
+    setUsers(newUsers);
+    localStorage.setItem('win11_users', JSON.stringify(newUsers));
+    
+    if (password) {
+      const passwords = JSON.parse(localStorage.getItem('win11_passwords') || '{}');
+      passwords[username] = password;
+      localStorage.setItem('win11_passwords', JSON.stringify(passwords));
+    }
+    
+    // Auto login after setup
+    setCurrentUser(username);
+    setBootPhase('welcome');
+    setTimeout(() => {
+      setBootPhase('desktop');
+    }, 4000); // Longer welcome for first run
+  };
+
+  const handleLogin = (user: string, password?: string) => {
+    const passwords = JSON.parse(localStorage.getItem('win11_passwords') || '{}');
+    if (passwords[user] && passwords[user] !== password) {
+       alert("Incorrect password. Please try again.");
+       return;
+    }
+
     setCurrentUser(user);
     setBootPhase('welcome');
     setTimeout(() => {
@@ -53,10 +121,25 @@ const App: React.FC = () => {
     }, 2000);
   };
 
+  const handleFactoryReset = useCallback(() => {
+    localStorage.removeItem('win11_users');
+    localStorage.removeItem('win11_passwords');
+    localStorage.removeItem('win11_files');
+    localStorage.removeItem('win11_language');
+    setUsers([]);
+    setFiles([
+      { id: 'initial-readme', name: 'readme', content: 'Welcome to Windows 11 Simulation!', parentFolder: 'Documents', extension: 'txt', type: 'file' },
+      { id: 'initial-projects', name: 'Projects', content: '', parentFolder: 'Documents', extension: '', type: 'folder' }
+    ]);
+    setLanguage('en-US');
+    setBootPhase('setup');
+  }, []);
+
   const handleLogOff = useCallback(() => {
     setBootPhase('login');
     setCurrentUser(null);
     setWindows([]);
+    setIsStartOpen(false);
   }, []);
 
   const closeMenus = useCallback(() => {
@@ -164,6 +247,8 @@ const App: React.FC = () => {
           isDarkMode={isDarkMode}
           setIsDarkMode={setIsDarkMode}
           initialCategory={win.payload?.category}
+          language={language}
+          setLanguage={setLanguage}
         />
       );
       default: return (
@@ -176,6 +261,10 @@ const App: React.FC = () => {
     }
   };
 
+  if (bootPhase === 'setup') {
+    return <SetupWizard onComplete={handleSetupComplete} />;
+  }
+
   if (bootPhase === 'login' || bootPhase === 'welcome') {
     return (
       <LoginScreen 
@@ -183,6 +272,9 @@ const App: React.FC = () => {
         onLogin={handleLogin} 
         isWelcomePhase={bootPhase === 'welcome'}
         userName={currentUser || ''}
+        users={users}
+        onAddUser={() => setBootPhase('setup')}
+        onReset={handleFactoryReset}
       />
     );
   }
@@ -240,6 +332,7 @@ const App: React.FC = () => {
         onOpenApp={openApp}
         userName={currentUser || 'User'}
         isDarkMode={isDarkMode}
+        language={language}
       />
 
       {/* Quick Settings */}
@@ -282,6 +375,7 @@ const App: React.FC = () => {
         activeAppId={windows.sort((a, b) => b.zIndex - a.zIndex)[0]?.appId}
         accentColor={accentColor}
         isDarkMode={isDarkMode}
+        language={language}
       />
     </div>
   );

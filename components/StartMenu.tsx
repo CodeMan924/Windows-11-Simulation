@@ -9,10 +9,19 @@ interface StartMenuProps {
   isOpen: boolean;
   userName: string;
   isDarkMode?: boolean;
+  language?: string;
 }
 
-const StartMenu: React.FC<StartMenuProps> = ({ onOpenApp, isOpen, userName, isDarkMode }) => {
+const StartMenu: React.FC<StartMenuProps> = ({ onOpenApp, isOpen, userName, isDarkMode, language = 'en-US' }) => {
   if (!isOpen) return null;
+
+  const pinnedLabel = {
+    'en-US': 'Pinned',
+    'es-ES': 'Anclado',
+    'fr-FR': 'Épinglé',
+    'de-DE': 'Angeheftet',
+    'ja-JP': 'ピン留め済み'
+  }[language] || 'Pinned';
 
   return (
     <div 
@@ -20,7 +29,7 @@ const StartMenu: React.FC<StartMenuProps> = ({ onOpenApp, isOpen, userName, isDa
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex-1 p-8">
-        <h3 className={`text-xs font-bold mb-4 animate-item ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>Pinned</h3>
+        <h3 className={`text-xs font-bold mb-4 animate-item ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>{pinnedLabel}</h3>
         <div className="grid grid-cols-6 gap-4">
           {DESKTOP_ICONS.map((icon, index) => (
             <button 

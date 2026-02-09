@@ -5,7 +5,7 @@ import {
   List, Undo, Redo, Image, Save, Search, Share2,
   MoreHorizontal, FileText, X, Check, Printer, Type,
   ListOrdered, Minus, Plus, ChevronDown, FolderOpen, SpellCheck,
-  BookPlus, EyeOff, Ban
+  BookPlus, EyeOff, Ban, Indent, Outdent
 } from 'lucide-react';
 import { VirtualFile } from '../types';
 
@@ -355,13 +355,15 @@ const Word: React.FC<WordProps> = ({ initialFile, files, saveFile, onClose }) =>
           {/* Paragraph */}
           <div className="flex flex-col px-3 border-r border-slate-300 h-full gap-1 pb-1">
              <div className="flex gap-1">
-                <button onMouseDown={(e) => onBtnMouseDown(e, 'insertUnorderedList')} className="p-1 hover:bg-slate-300 rounded"><List size={16}/></button>
-                <button onMouseDown={(e) => onBtnMouseDown(e, 'insertOrderedList')} className="p-1 hover:bg-slate-300 rounded"><ListOrdered size={16}/></button>
+                <button onMouseDown={(e) => onBtnMouseDown(e, 'insertUnorderedList')} className="p-1 hover:bg-slate-300 rounded" title="Bullets"><List size={16}/></button>
+                <button onMouseDown={(e) => onBtnMouseDown(e, 'insertOrderedList')} className="p-1 hover:bg-slate-300 rounded" title="Numbering"><ListOrdered size={16}/></button>
+                <button onMouseDown={(e) => onBtnMouseDown(e, 'outdent')} className="p-1 hover:bg-slate-300 rounded" title="Decrease Indent"><Outdent size={16}/></button>
+                <button onMouseDown={(e) => onBtnMouseDown(e, 'indent')} className="p-1 hover:bg-slate-300 rounded" title="Increase Indent"><Indent size={16}/></button>
              </div>
              <div className="flex gap-1 mt-1">
-                <button onMouseDown={(e) => onBtnMouseDown(e, 'justifyLeft')} className="p-1 hover:bg-slate-300 rounded"><AlignLeft size={16}/></button>
-                <button onMouseDown={(e) => onBtnMouseDown(e, 'justifyCenter')} className="p-1 hover:bg-slate-300 rounded"><AlignCenter size={16}/></button>
-                <button onMouseDown={(e) => onBtnMouseDown(e, 'justifyRight')} className="p-1 hover:bg-slate-300 rounded"><AlignRight size={16}/></button>
+                <button onMouseDown={(e) => onBtnMouseDown(e, 'justifyLeft')} className="p-1 hover:bg-slate-300 rounded" title="Align Left"><AlignLeft size={16}/></button>
+                <button onMouseDown={(e) => onBtnMouseDown(e, 'justifyCenter')} className="p-1 hover:bg-slate-300 rounded" title="Center"><AlignCenter size={16}/></button>
+                <button onMouseDown={(e) => onBtnMouseDown(e, 'justifyRight')} className="p-1 hover:bg-slate-300 rounded" title="Align Right"><AlignRight size={16}/></button>
              </div>
              <span className="text-[11px] text-slate-500 text-center mt-auto">Paragraph</span>
           </div>

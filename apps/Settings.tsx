@@ -12,10 +12,12 @@ import {
   Sun,
   Laptop,
   Network,
-  Moon
+  Moon,
+  Clock,
+  Globe
 } from 'lucide-react';
 
-type Category = 'system' | 'personalization' | 'network' | 'sound' | 'about';
+type Category = 'system' | 'personalization' | 'network' | 'sound' | 'time' | 'about';
 
 interface SettingsProps {
   userName: string;
@@ -34,6 +36,8 @@ interface SettingsProps {
   isDarkMode: boolean;
   setIsDarkMode: (val: boolean) => void;
   initialCategory?: Category;
+  language: string;
+  setLanguage: (lang: string) => void;
 }
 
 const WALLPAPERS = [
@@ -61,6 +65,76 @@ const WIFI_NETWORKS = [
   { name: 'Cool wifi', strength: 'Strong' },
 ];
 
+const LANGUAGES = [
+  { code: 'en-US', name: 'English (United States)', region: 'United States' },
+  { code: 'en-GB', name: 'English (United Kingdom)', region: 'United Kingdom' },
+  { code: 'zh-CN', name: '中文 (简体)', region: 'China' },
+  { code: 'zh-TW', name: '中文 (繁體)', region: 'Taiwan' },
+  { code: 'es-ES', name: 'Español (España)', region: 'España' },
+  { code: 'es-MX', name: 'Español (México)', region: 'México' },
+  { code: 'fr-FR', name: 'Français (France)', region: 'France' },
+  { code: 'de-DE', name: 'Deutsch (Deutschland)', region: 'Deutschland' },
+  { code: 'ru-RU', name: 'Русский (Россия)', region: 'Россия' },
+  { code: 'ja-JP', name: '日本語 (Japan)', region: 'Japan' },
+  { code: 'pt-BR', name: 'Português (Brasil)', region: 'Brasil' },
+  { code: 'pt-PT', name: 'Português (Portugal)', region: 'Portugal' },
+  { code: 'it-IT', name: 'Italiano (Italia)', region: 'Italia' },
+  { code: 'ko-KR', name: '한국어 (Korea)', region: 'Korea' },
+  { code: 'ar-SA', name: 'العربية (Saudi Arabia)', region: 'Saudi Arabia' },
+  { code: 'hi-IN', name: 'हिन्दी (India)', region: 'India' },
+  { code: 'nl-NL', name: 'Nederlands (Nederland)', region: 'Nederland' },
+  { code: 'tr-TR', name: 'Türkçe (Türkiye)', region: 'Türkiye' },
+  { code: 'pl-PL', name: 'Polski (Polska)', region: 'Polska' },
+  { code: 'sv-SE', name: 'Svenska (Sverige)', region: 'Sverige' },
+  { code: 'id-ID', name: 'Bahasa Indonesia (Indonesia)', region: 'Indonesia' },
+  { code: 'vi-VN', name: 'Tiếng Việt (Vietnam)', region: 'Vietnam' },
+  { code: 'th-TH', name: 'ไทย (Thailand)', region: 'Thailand' },
+  { code: 'uk-UA', name: 'Українська (Ukraine)', region: 'Ukraine' },
+  { code: 'el-GR', name: 'Ελληνικά (Greece)', region: 'Greece' },
+  { code: 'he-IL', name: 'עברית (Israel)', region: 'Israel' },
+  { code: 'fi-FI', name: 'Suomi (Suomi)', region: 'Suomi' },
+  { code: 'no-NO', name: 'Norsk bokmål (Norge)', region: 'Norge' },
+  { code: 'da-DK', name: 'Dansk (Danmark)', region: 'Danmark' },
+  { code: 'cs-CZ', name: 'Čeština (Česká republika)', region: 'Česká republika' },
+  { code: 'hu-HU', name: 'Magyar (Magyarország)', region: 'Magyarország' },
+  { code: 'ro-RO', name: 'Română (România)', region: 'România' },
+];
+
+const translations: Record<string, any> = {
+    'en-US': { system: 'System', pers: 'Personalization', net: 'Network & internet', sound: 'Sound', time: 'Time & language', about: 'About', display: 'Display', mode: 'Choose your mode', find: 'Find a setting' },
+    'en-GB': { system: 'System', pers: 'Personalisation', net: 'Network & internet', sound: 'Sound', time: 'Time & language', about: 'About', display: 'Display', mode: 'Choose your mode', find: 'Find a setting' },
+    'zh-CN': { system: '系统', pers: '个性化', net: '网络和互联网', sound: '声音', time: '时间和语言', about: '关于', display: '显示', mode: '选择模式', find: '查找设置' },
+    'zh-TW': { system: '系統', pers: '個人化', net: '網路和網際網路', sound: '聲音', time: '時間與語言', about: '關於', display: '顯示器', mode: '選擇模式', find: '尋找設定' },
+    'es-ES': { system: 'Sistema', pers: 'Personalización', net: 'Red e Internet', sound: 'Sonido', time: 'Hora e idioma', about: 'Información', display: 'Pantalla', mode: 'Elige tu modo', find: 'Buscar una configuración' },
+    'es-MX': { system: 'Sistema', pers: 'Personalización', net: 'Red e Internet', sound: 'Sonido', time: 'Hora e idioma', about: 'Acerca de', display: 'Pantalla', mode: 'Elige tu modo', find: 'Buscar una configuración' },
+    'fr-FR': { system: 'Système', pers: 'Personnalisation', net: 'Réseau et Internet', sound: 'Son', time: 'Heure et langue', about: 'Informations', display: 'Écran', mode: 'Choisissez votre mode', find: 'Trouver un paramètre' },
+    'de-DE': { system: 'System', pers: 'Personalisierung', net: 'Netzwerk und Internet', sound: 'Sound', time: 'Zeit und Sprache', about: 'Info', display: 'Anzeige', mode: 'Wählen Sie Ihren Modus', find: 'Einstellung suchen' },
+    'ru-RU': { system: 'Система', pers: 'Персонализация', net: 'Сеть и Интернет', sound: 'Звук', time: 'Время и язык', about: 'О системе', display: 'Дисплей', mode: 'Выберите режим', find: 'Найти настройку' },
+    'ja-JP': { system: 'システム', pers: '個人用設定', net: 'ネットワークとインターネット', sound: 'サウンド', time: '時刻と言語', about: 'バージョン情報', display: 'ディスプレイ', mode: 'モードを選択', find: '設定の検索' },
+    'pt-BR': { system: 'Sistema', pers: 'Personalização', net: 'Rede e Internet', sound: 'Som', time: 'Hora e idioma', about: 'Sobre', display: 'Vídeo', mode: 'Escolha seu modo', find: 'Localizar uma configuração' },
+    'pt-PT': { system: 'Sistema', pers: 'Personalização', net: 'Rede e Internet', sound: 'Som', time: 'Hora e idioma', about: 'Sobre', display: 'Ecrã', mode: 'Escolha o seu modo', find: 'Localizar uma definição' },
+    'it-IT': { system: 'Sistema', pers: 'Personalizzazione', net: 'Rete e Internet', sound: 'Suono', time: 'Data e ora', about: 'Informazioni', display: 'Schermo', mode: 'Scegli la modalità', find: 'Trova un\'impostazione' },
+    'ko-KR': { system: '시스템', pers: '개인 설정', net: '네트워크 및 인터넷', sound: '소리', time: '시간 및 언어', about: '정보', display: '디스플레이', mode: '모드 선택', find: '설정 찾기' },
+    'ar-SA': { system: 'النظام', pers: 'إضفاء طابع شخصي', net: 'الشبكة والإنترنت', sound: 'الصوت', time: 'الوقت واللغة', about: 'حول', display: 'شاشة العرض', mode: 'اختر وضعك', find: 'البحث عن إعداد' },
+    'hi-IN': { system: 'सिस्टम', pers: 'वैयक्तिकरण', net: 'नेटवर्क और इंटरनेट', sound: 'ध्वनि', time: 'समय और भाषा', about: 'के बारे में', display: 'प्रदर्शन', mode: 'अपना मोड चुनें', find: 'एक सेटिंग खोजें' },
+    'nl-NL': { system: 'Systeem', pers: 'Persoonlijke instellingen', net: 'Netwerk en internet', sound: 'Geluid', time: 'Tijd en taal', about: 'Info', display: 'Beeldscherm', mode: 'Kies uw modus', find: 'Instelling zoeken' },
+    'tr-TR': { system: 'Sistem', pers: 'Kişiselleştirme', net: 'Ağ ve internet', sound: 'Ses', time: 'Zaman ve dil', about: 'Hakkında', display: 'Ekran', mode: 'Modunuzu seçin', find: 'Bir ayar bulun' },
+    'pl-PL': { system: 'System', pers: 'Personalizacja', net: 'Sieć i internet', sound: 'Dźwięk', time: 'Czas i język', about: 'Informacje', display: 'Ekran', mode: 'Wybierz tryb', find: 'Znajdź ustawienie' },
+    'sv-SE': { system: 'System', pers: 'Anpassning', net: 'Nätverk och internet', sound: 'Ljud', time: 'Tid och språk', about: 'Om', display: 'Bildskärm', mode: 'Välj läge', find: 'Hitta en inställning' },
+    'id-ID': { system: 'Sistem', pers: 'Personalisasi', net: 'Jaringan & internet', sound: 'Suara', time: 'Waktu & bahasa', about: 'Tentang', display: 'Layar', mode: 'Pilih mode Anda', find: 'Cari pengaturan' },
+    'vi-VN': { system: 'Hệ thống', pers: 'Cá nhân hóa', net: 'Mạng & internet', sound: 'Âm thanh', time: 'Giờ & ngôn ngữ', about: 'Giới thiệu', display: 'Màn hình', mode: 'Chọn chế độ', find: 'Tìm cài đặt' },
+    'th-TH': { system: 'ระบบ', pers: 'การตั้งค่าส่วนบุคคล', net: 'เครือข่ายและอินเทอร์เน็ต', sound: 'เสียง', time: 'เวลาและภาษา', about: 'เกี่ยวกับ', display: 'หน้าจอ', mode: 'เลือกโหมดของคุณ', find: 'ค้นหาการตั้งค่า' },
+    'uk-UA': { system: 'Система', pers: 'Персоналізація', net: 'Мережа та Інтернет', sound: 'Звук', time: 'Час і мова', about: 'Про систему', display: 'Дисплей', mode: 'Виберіть режим', find: 'Знайти налаштування' },
+    'el-GR': { system: 'Σύστημα', pers: 'Εξατομίκευση', net: 'Δίκτυο & διαδίκτυο', sound: 'Ήχος', time: 'Ώρα & γλώσσα', about: 'Πληροφορίες', display: 'Οθόνη', mode: 'Επιλέξτε λειτουργία', find: 'Βρείτε μια ρύθμιση' },
+    'he-IL': { system: 'מערכת', pers: 'התאמה אישית', net: 'רשת ואינטרנט', sound: 'שמע', time: 'זמן ושפה', about: 'אודות', display: 'צג', mode: 'בחר מצב', find: 'חפש הגדרה' },
+    'fi-FI': { system: 'Järjestelmä', pers: 'Mukauttaminen', net: 'Verkko ja internet', sound: 'Ääni', time: 'Aika ja kieli', about: 'Tietoja', display: 'Näyttö', mode: 'Valitse tila', find: 'Etsi asetus' },
+    'no-NO': { system: 'System', pers: 'Personalisering', net: 'Nettverk og internett', sound: 'Lyd', time: 'Tid og språk', about: 'Om', display: 'Skjerm', mode: 'Velg modus', find: 'Finn en innstilling' },
+    'da-DK': { system: 'System', pers: 'Personlig tilpasning', net: 'Netværk og internet', sound: 'Lyd', time: 'Tid og sprog', about: 'Om', display: 'Skærm', mode: 'Vælg tilstand', find: 'Find en indstilling' },
+    'cs-CZ': { system: 'Systém', pers: 'Přizpůsobení', net: 'Síť a internet', sound: 'Zvuk', time: 'Čas a jazyk', about: 'O systému', display: 'Displej', mode: 'Zvolte režim', find: 'Najít nastavení' },
+    'hu-HU': { system: 'Rendszer', pers: 'Személyre szabás', net: 'Hálózat és internet', sound: 'Hang', time: 'Idő és nyelv', about: 'Névjegy', display: 'Kijelző', mode: 'Mód kiválasztása', find: 'Beállítás keresése' },
+    'ro-RO': { system: 'Sistem', pers: 'Personalizare', net: 'Rețea și internet', sound: 'Sunet', time: 'Timp și limbă', about: 'Despre', display: 'Afișaj', mode: 'Alegeți modul', find: 'Găsiți o setare' },
+};
+
 const Settings: React.FC<SettingsProps> = ({ 
   userName, 
   wallpaper, 
@@ -77,10 +151,14 @@ const Settings: React.FC<SettingsProps> = ({
   setAccentColor,
   isDarkMode,
   setIsDarkMode,
-  initialCategory
+  initialCategory,
+  language,
+  setLanguage
 }) => {
   const [activeCategory, setActiveCategory] = useState<Category>('system');
   const [searchQuery, setSearchQuery] = useState('');
+
+  const t = translations[language] || translations['en-US'];
 
   useEffect(() => {
     if (initialCategory) {
@@ -89,11 +167,12 @@ const Settings: React.FC<SettingsProps> = ({
   }, [initialCategory]);
 
   const sidebarItems = [
-    { id: 'system', label: 'System', icon: <Monitor size={18} /> },
-    { id: 'personalization', label: 'Personalization', icon: <Palette size={18} /> },
-    { id: 'network', label: 'Network & internet', icon: <Network size={18} /> },
-    { id: 'sound', label: 'Sound', icon: <Volume2 size={18} /> },
-    { id: 'about', label: 'About', icon: <Info size={18} /> },
+    { id: 'system', label: t.system, icon: <Monitor size={18} /> },
+    { id: 'personalization', label: t.pers, icon: <Palette size={18} /> },
+    { id: 'network', label: t.net, icon: <Network size={18} /> },
+    { id: 'sound', label: t.sound, icon: <Volume2 size={18} /> },
+    { id: 'time', label: t.time, icon: <Clock size={18} /> },
+    { id: 'about', label: t.about, icon: <Info size={18} /> },
   ];
 
   const containerClasses = isDarkMode ? 'bg-[#1c1c1c] text-white' : 'bg-slate-50 text-slate-800';
@@ -105,7 +184,7 @@ const Settings: React.FC<SettingsProps> = ({
       case 'system':
         return (
           <div className="space-y-8 animate-start">
-            <h2 className="text-2xl font-bold">System</h2>
+            <h2 className="text-2xl font-bold">{t.system}</h2>
             
             <section className={`${cardClasses} rounded-xl border p-6 space-y-6`}>
               <div className="flex items-center justify-between">
@@ -114,7 +193,7 @@ const Settings: React.FC<SettingsProps> = ({
                     <Sun size={24} />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Display</h3>
+                    <h3 className="font-semibold">{t.display}</h3>
                     <p className="text-xs opacity-60">Brightness, night light, display profile</p>
                   </div>
                 </div>
@@ -141,11 +220,11 @@ const Settings: React.FC<SettingsProps> = ({
       case 'personalization':
         return (
           <div className="space-y-8 animate-start">
-            <h2 className="text-2xl font-bold">Personalization</h2>
+            <h2 className="text-2xl font-bold">{t.pers}</h2>
             
             {/* Mode Toggle */}
             <section className={`${cardClasses} rounded-xl border p-6 space-y-4`}>
-              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Choose your mode</h3>
+              <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">{t.mode}</h3>
               <div className="flex gap-4">
                 <button 
                   onClick={() => setIsDarkMode(false)}
@@ -216,7 +295,7 @@ const Settings: React.FC<SettingsProps> = ({
       case 'network':
         return (
           <div className="space-y-8 animate-start">
-            <h2 className="text-2xl font-bold">Network & internet</h2>
+            <h2 className="text-2xl font-bold">{t.net}</h2>
 
             <section className={`${cardClasses} rounded-xl border p-6 flex items-center justify-between`}>
                <div className="flex items-center gap-4">
@@ -263,6 +342,65 @@ const Settings: React.FC<SettingsProps> = ({
           </div>
         );
 
+      case 'time':
+        return (
+          <div className="space-y-8 animate-start">
+            <h2 className="text-2xl font-bold">{t.time}</h2>
+
+            <section className={`${cardClasses} rounded-xl border p-6 space-y-6`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-purple-500/20 text-purple-400' : 'bg-purple-100 text-purple-600'}`}>
+                    <Globe size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Language & region</h3>
+                    <p className="text-xs opacity-60">Windows display language, preferred languages, regional format</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t border-slate-100/10">
+                 <div>
+                    <label className="text-sm font-medium block mb-2">Windows display language</label>
+                    <div className={`${isDarkMode ? 'bg-black/20 border-white/10' : 'bg-white border-slate-200'} border rounded-lg overflow-hidden h-64 overflow-y-auto custom-scrollbar`}>
+                       {LANGUAGES.map(lang => (
+                          <button
+                            key={lang.code}
+                            onClick={() => setLanguage(lang.code)}
+                            className={`w-full flex items-center justify-between p-3 text-left hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${language === lang.code ? 'bg-black/5 dark:bg-white/5' : ''}`}
+                          >
+                             <div>
+                                <div className="text-sm font-medium">{lang.name}</div>
+                                <div className="text-xs opacity-60">{lang.region}</div>
+                             </div>
+                             {language === lang.code && <Check size={16} style={{ color: accentColor }} />}
+                          </button>
+                       ))}
+                    </div>
+                    <p className="text-[10px] opacity-50 mt-2">
+                       Some apps may need to be restarted to see language changes.
+                    </p>
+                 </div>
+              </div>
+            </section>
+            
+            <section className={`${cardClasses} rounded-xl border p-6 flex items-center justify-between`}>
+               <div className="flex items-center gap-4">
+                <div className={`p-3 rounded-lg ${isDarkMode ? 'bg-blue-500/20 text-blue-400' : 'bg-blue-100 text-blue-600'}`}>
+                  <Clock size={24} />
+                </div>
+                <div>
+                  <h3 className="font-semibold">Date & time</h3>
+                  <p className="text-xs opacity-60">
+                     Current time: {new Date().toLocaleTimeString(language, { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            </section>
+          </div>
+        );
+
       default:
         return <div className="p-10 text-center opacity-50">Content for {activeCategory} is coming soon.</div>;
     }
@@ -278,7 +416,7 @@ const Settings: React.FC<SettingsProps> = ({
            </div>
            <div className="flex flex-col overflow-hidden">
              <span className="text-xs font-bold truncate">{userName}</span>
-             <span className="text-[10px] opacity-60 font-medium">Administrator</span>
+             <span className="text-[10px] opacity-60 font-medium">Local Account</span>
            </div>
         </div>
 
@@ -286,7 +424,7 @@ const Settings: React.FC<SettingsProps> = ({
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text" 
-            placeholder="Find a setting"
+            placeholder={t.find}
             className={`w-full border rounded-lg pl-9 pr-3 py-2 text-xs focus:ring-2 focus:ring-blue-500/30 outline-none transition-shadow ${isDarkMode ? 'bg-white/5 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'}`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
