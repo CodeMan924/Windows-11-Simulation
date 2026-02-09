@@ -4,7 +4,8 @@ import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight, 
   List, Undo, Redo, Image, Save, Search, Share2,
   MoreHorizontal, FileText, X, Check, Printer, Type,
-  ListOrdered, Minus, Plus, ChevronDown, FolderOpen, SpellCheck
+  ListOrdered, Minus, Plus, ChevronDown, FolderOpen, SpellCheck,
+  BookPlus, EyeOff, Ban
 } from 'lucide-react';
 import { VirtualFile } from '../types';
 
@@ -21,7 +22,7 @@ interface WordProps {
 
 // A small subset of common words for simulation purposes.
 // In a real app, this would be a large library or an API.
-const COMMON_WORDS = new Set([
+const INITIAL_COMMON_WORDS = new Set([
   'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
   'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
   'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
@@ -70,13 +71,18 @@ const Word: React.FC<WordProps> = ({ initialFile, files, saveFile, onClose }) =>
   const [showOpenDialog, setShowOpenDialog] = useState(false);
   
   // Spell Check State
+  const [customDictionary, setCustomDictionary] = useState<Set<string>>(new Set());
+  const [ignoredWords, setIgnoredWords] = useState<Set<string>>(new Set()); // For "Ignore All"
+  const [ignoredInstances, setIgnoredInstances] = useState<Set<string>>(new Set()); // For "Ignore Once" - simplistic implementation using word+index approximation
+  
   const [spellMenu, setSpellMenu] = useState<{
     isOpen: boolean;
     x: number;
     y: number;
     originalWord: string;
+    cleanWord: string;
     suggestions: string[];
-  }>({ isOpen: false, x: 0, y: 0, originalWord: '', suggestions: [] });
+  }>({ isOpen: false, x: 0, y: 0, originalWord: '', cleanWord: '', suggestions: [] });
   
   // Save Dialog State
   const [saveName, setSaveName] = useState(fileName);
@@ -167,9 +173,14 @@ const Word: React.FC<WordProps> = ({ initialFile, files, saveFile, onClose }) =>
     // Remove punctuation for checking
     const cleanWord = originalWord.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, "").toLowerCase();
 
+    // Check if ignored or in dictionaries
+    if (ignoredWords.has(cleanWord) || customDictionary.has(cleanWord) || ignoredInstances.has(originalWord)) {
+      return;
+    }
+
     // If word is NOT in common words, suggest corrections
-    if (!COMMON_WORDS.has(cleanWord) && cleanWord.length > 2) {
-      const suggestions = Array.from(COMMON_WORDS)
+    if (!INITIAL_COMMON_WORDS.has(cleanWord) && cleanWord.length > 2) {
+      const suggestions = Array.from([...INITIAL_COMMON_WORDS, ...customDictionary])
         .map(w => ({ word: w, dist: getLevenshteinDistance(cleanWord, w) }))
         // Filter: Distance must be small (relative to length) to be a "correction"
         .filter(item => item.dist > 0 && item.dist <= 2)
@@ -177,22 +188,16 @@ const Word: React.FC<WordProps> = ({ initialFile, files, saveFile, onClose }) =>
         .slice(0, 3)
         .map(i => i.word);
 
-      if (suggestions.length > 0) {
-        // Prevent default selection behavior if we want to show menu immediately? 
-        // No, let selection happen so we know what to replace.
-        
-        // Calculate position relative to the editor window
-        const rect = editorRef.current?.getBoundingClientRect();
-        if (rect) {
-           setSpellMenu({
-             isOpen: true,
-             x: e.clientX,
-             y: e.clientY,
-             originalWord,
-             suggestions
-           });
-        }
-      }
+      // Even if no suggestions, show the menu options
+      // Calculate position relative to the editor window
+      setSpellMenu({
+        isOpen: true,
+        x: e.clientX,
+        y: e.clientY,
+        originalWord,
+        cleanWord,
+        suggestions
+      });
     }
   };
 
@@ -200,7 +205,6 @@ const Word: React.FC<WordProps> = ({ initialFile, files, saveFile, onClose }) =>
     e.preventDefault(); // Stop focus stealing
     e.stopPropagation();
 
-    // We rely on the text still being selected from the double click
     if (editorRef.current) {
       editorRef.current.focus();
       
@@ -215,6 +219,28 @@ const Word: React.FC<WordProps> = ({ initialFile, files, saveFile, onClose }) =>
       setSpellMenu(prev => ({ ...prev, isOpen: false }));
       updateStats();
     }
+  };
+
+  const handleIgnoreOnce = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Simple way to ignore specific instance string
+    setIgnoredInstances(prev => new Set(prev).add(spellMenu.originalWord));
+    setSpellMenu(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleIgnoreAll = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIgnoredWords(prev => new Set(prev).add(spellMenu.cleanWord));
+    setSpellMenu(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleAddToDictionary = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCustomDictionary(prev => new Set(prev).add(spellMenu.cleanWord));
+    setSpellMenu(prev => ({ ...prev, isOpen: false }));
   };
 
   const onBtnMouseDown = (e: React.MouseEvent, command: string, value?: string) => {
@@ -364,29 +390,50 @@ const Word: React.FC<WordProps> = ({ initialFile, files, saveFile, onClose }) =>
       {/* Spell Check Context Menu */}
       {spellMenu.isOpen && (
         <div 
-          className="fixed bg-white border border-slate-300 shadow-xl rounded-md z-[60] py-1 w-48 animate-panel-up"
+          className="fixed bg-white border border-slate-300 shadow-xl rounded-md z-[60] py-1 w-56 animate-panel-up"
           style={{ top: spellMenu.y + 10, left: spellMenu.x }}
           onMouseDown={(e) => e.stopPropagation()} 
         >
           <div className="px-3 py-1.5 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
             <SpellCheck size={14} className="text-red-500" />
-            <span className="text-xs font-bold text-slate-500">Spelling Suggestions</span>
+            <span className="text-xs font-bold text-slate-500">Spelling</span>
           </div>
-          {spellMenu.suggestions.map((suggestion, idx) => (
-            <button
-              key={idx}
-              onMouseDown={(e) => applyCorrection(e, suggestion)}
-              className="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 text-sm font-medium transition-colors"
-            >
-              {suggestion}
-            </button>
-          ))}
+          
+          {spellMenu.suggestions.length > 0 ? (
+            spellMenu.suggestions.map((suggestion, idx) => (
+              <button
+                key={idx}
+                onMouseDown={(e) => applyCorrection(e, suggestion)}
+                className="w-full text-left px-4 py-2 hover:bg-blue-50 hover:text-blue-700 text-sm font-bold transition-colors"
+              >
+                {suggestion}
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-2 text-sm text-slate-400 italic">No suggestions</div>
+          )}
+
           <div className="h-[1px] bg-slate-100 my-1"></div>
+          
           <button 
-             onClick={() => setSpellMenu(prev => ({...prev, isOpen: false}))}
-             className="w-full text-left px-4 py-1.5 text-xs text-slate-400 hover:bg-slate-50"
+             onMouseDown={handleIgnoreOnce}
+             className="w-full text-left px-4 py-1.5 text-xs text-slate-600 hover:bg-slate-100 flex items-center gap-2"
           >
-            Ignore All
+            <EyeOff size={12} /> Ignore Once
+          </button>
+          
+          <button 
+             onMouseDown={handleIgnoreAll}
+             className="w-full text-left px-4 py-1.5 text-xs text-slate-600 hover:bg-slate-100 flex items-center gap-2"
+          >
+            <Ban size={12} /> Ignore All
+          </button>
+          
+          <button 
+             onMouseDown={handleAddToDictionary}
+             className="w-full text-left px-4 py-1.5 text-xs text-slate-600 hover:bg-slate-100 flex items-center gap-2"
+          >
+            <BookPlus size={12} /> Add to Dictionary
           </button>
         </div>
       )}

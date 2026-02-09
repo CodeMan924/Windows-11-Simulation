@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { VirtualFile } from '../types';
+import { VirtualFile, AppID } from '../types';
 
 interface TerminalProps {
   userName: string;
@@ -8,9 +8,11 @@ interface TerminalProps {
   initialScript?: VirtualFile;
   onClose?: () => void;
   onLogOff: () => void;
+  openApp: (appId: AppID, payload?: any) => void;
+  addFolder: (name: string, parentId: string) => void;
 }
 
-const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onClose, onLogOff }) => {
+const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onClose, onLogOff, openApp, addFolder }) => {
   const [currentDirKey, setCurrentDirKey] = useState<'Documents' | 'Desktop' | 'Downloads'>(initialScript?.parentFolder || 'Documents');
   const currentDir = `C:\\Users\\${userName}\\${currentDirKey}`;
   const [history, setHistory] = useState<string[]>([
@@ -48,9 +50,8 @@ const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onC
 
     if (matchingFile) {
       if (matchingFile.type === 'batch') {
-        // Nested batch execution is complex, just mention it for now or start it
+        // Nested batch execution
         output = [`Starting nested batch execution for ${matchingFile.name}...`];
-        // In a real terminal we'd queue these lines too, but for simplicity:
         const lines = matchingFile.content.split('\n');
         setPendingLines(prev => [...lines, ...prev]);
       } else {
@@ -58,21 +59,59 @@ const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onC
       }
     } else {
       switch (baseCmd) {
+        case 'start':
+          if (!remainingArgs) {
+             openApp('terminal');
+          } else {
+             const target = remainingArgs.toLowerCase();
+             if (target.startsWith('http')) {
+               openApp('browser', { url: remainingArgs });
+             } else {
+               const map: Record<string, AppID> = {
+                 'calc': 'calculator',
+                 'notepad': 'notepad',
+                 'word': 'word',
+                 'winword': 'word',
+                 'edge': 'browser',
+                 'chrome': 'browser',
+                 'browser': 'browser',
+                 'explorer': 'explorer',
+                 'cmd': 'terminal',
+                 'taskmgr': 'taskmanager'
+               };
+               const appId = map[target] || target as AppID;
+               // Attempt to open app, ignore if invalid (App will handle error implicitly or show "not found" if we had a way to check)
+               openApp(appId);
+             }
+          }
+          break;
         case 'pause':
           output = ['Press any key to continue . . . '];
           halt = true;
           break;
         case 'help':
           output = [
-            'CD [dir]       Changes current directory (Documents, Desktop, Downloads).',
-            'DIR            Lists files in current virtual directory.',
-            'TYPE [file]    Displays file content.',
+            'For more information on a specific command, type HELP command-name',
+            'CD             Changes the current directory.',
             'CLS            Clears the screen.',
-            'SYSTEMINFO     Displays system information.',
-            'VER            Displays Windows version.',
-            'WHOAMI         Displays current user.',
-            'PAUSE          Suspends processing of a batch file.',
-            'LOGOFF         Logs off the current user.'
+            'COLOR          Sets the default console foreground and background colors.',
+            'DATE           Displays or sets the date.',
+            'DIR            Displays a list of files and subdirectories in a directory.',
+            'ECHO           Displays messages, or turns command echoing on or off.',
+            'EXIT           Quits the CMD.EXE program (closes this window).',
+            'HOSTNAME       Displays the host name of the full computer name.',
+            'IPCONFIG       Displays all current TCP/IP network configuration values.',
+            'LOGOFF         Logs off the current user.',
+            'MD             Creates a directory.',
+            'MKDIR          Creates a directory.',
+            'PAUSE          Suspends processing of a batch file and displays a message.',
+            'PING           Verifies IP-level connectivity to another TCP/IP computer.',
+            'START          Starts a separate window to run a specified program or command.',
+            'SYSTEMINFO     Displays machine specific properties and configuration.',
+            'TIME           Displays or sets the system time.',
+            'TYPE           Displays the contents of a text file.',
+            'VER            Displays the Windows version.',
+            'WHOAMI         Displays user name.',
           ];
           break;
         case 'cd':
@@ -91,7 +130,7 @@ const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onC
           output = [
             ` Directory of ${currentDir}`,
             '',
-            ...localFiles.map(f => `05/23/2024  02:00 PM    ${f.type === 'batch' ? '<BAT>' : '     '}          ${f.name}.${f.extension}`),
+            ...localFiles.map(f => `05/23/2024  02:00 PM    ${f.type === 'batch' ? '<BAT>' : '     '}          ${f.name}${f.extension ? '.'+f.extension : ''}`),
             `               ${localFiles.length} File(s)            0 bytes`,
             '               0 Dir(s)  128,849,018,880 bytes free'
           ];
@@ -102,6 +141,9 @@ const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onC
         case 'whoami':
           output = [`win-sim\\${userName.toLowerCase()}`];
           break;
+        case 'hostname':
+           output = ['WIN-SIM-PRO'];
+           break;
         case 'ver':
           output = ['Microsoft Windows [Version 11.0.22621]'];
           break;
@@ -115,13 +157,85 @@ const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onC
           output = ['Logging off...'];
           setTimeout(onLogOff, 800);
           break;
+        case 'date':
+          output = [`The current date is: ${new Date().toLocaleDateString()}`];
+          break;
+        case 'time':
+          output = [`The current time is: ${new Date().toLocaleTimeString()}`];
+          break;
+        case 'exit':
+          if (onClose) onClose();
+          break;
+        case 'mkdir':
+        case 'md':
+           if (remainingArgs) {
+             addFolder(remainingArgs, currentDirKey);
+             output = [];
+           } else {
+             output = ['The syntax of the command is incorrect.'];
+           }
+           break;
+        case 'ipconfig':
+           output = [
+             '',
+             'Windows IP Configuration',
+             '',
+             'Ethernet adapter Ethernet:',
+             '',
+             '   Connection-specific DNS Suffix  . : localdomain',
+             '   IPv6 Address. . . . . . . . . . . : fe80::1c4b:9b3a:22d1:8821%12',
+             '   IPv4 Address. . . . . . . . . . . : 192.168.1.105',
+             '   Subnet Mask . . . . . . . . . . . : 255.255.255.0',
+             '   Default Gateway . . . . . . . . . : 192.168.1.1'
+           ];
+           break;
+        case 'color':
+           const colorMap: Record<string, string> = {
+             '0': '#000000', '1': '#000080', '2': '#008000', '3': '#008080',
+             '4': '#800000', '5': '#800080', '6': '#808000', '7': '#c0c0c0',
+             '8': '#808080', '9': '#0000ff', 'a': '#00ff00', 'b': '#00ffff',
+             'c': '#ff0000', 'd': '#ff00ff', 'e': '#ffff00', 'f': '#ffffff'
+           };
+           // Simple parser: takes last hex digit as foreground
+           if (remainingArgs.length > 0) {
+             const fg = remainingArgs[remainingArgs.length - 1].toLowerCase();
+             if (colorMap[fg]) setTerminalColor(colorMap[fg]);
+           }
+           break;
+        case 'ping':
+           const targetHost = remainingArgs || '127.0.0.1';
+           output = [`Pinging ${targetHost} with 32 bytes of data:`];
+           const replies = [
+             `echo Reply from ${targetHost}: bytes=32 time<1ms TTL=128`,
+             `echo Reply from ${targetHost}: bytes=32 time<1ms TTL=128`,
+             `echo Reply from ${targetHost}: bytes=32 time<1ms TTL=128`,
+             `echo Reply from ${targetHost}: bytes=32 time<1ms TTL=128`,
+             `echo Ping statistics for ${targetHost}:`,
+             `echo     Packets: Sent = 4, Received = 4, Lost = 0 (0% loss),`
+           ];
+           // Delay execution to simulate ping
+           // We cheat by injecting 'echo' commands into the pendingLines queue which has a built-in delay
+           setPendingLines(prev => [...replies, ...prev]);
+           break;
+        case 'type':
+           if (remainingArgs) {
+              const f = files.find(file => file.parentFolder === currentDirKey && (file.name === remainingArgs || `${file.name}.${file.extension}` === remainingArgs));
+              if (f) {
+                output = f.content.split('\n');
+              } else {
+                output = ['The system cannot find the file specified.'];
+              }
+           } else {
+              output = ['The syntax of the command is incorrect.'];
+           }
+           break;
         default:
           output = [`'${baseCmd}' is not recognized as an internal or external command,`, 'operable program or batch file.'];
       }
     }
 
     return { output, halt };
-  }, [files, currentDirKey, userName, currentDir, onLogOff]);
+  }, [files, currentDirKey, userName, currentDir, onLogOff, openApp, addFolder, onClose]);
 
   // Main execution loop for pending script lines
   useEffect(() => {
@@ -141,7 +255,7 @@ const Terminal: React.FC<TerminalProps> = ({ userName, files, initialScript, onC
           // If the script finished and it was an auto-executed one, close window
           if (onClose) onClose();
         }
-      }, 50); // Minimal delay for visual effect
+      }, 500); // Increased delay for ping effect visibility
       return () => clearTimeout(timer);
     }
   }, [pendingLines, isPaused, executeCommand, currentDir, initialScript, onClose]);

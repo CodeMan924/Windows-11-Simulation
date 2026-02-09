@@ -2,9 +2,13 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, ChevronRight, RotateCw, Home, Lock, Search, MoreHorizontal } from 'lucide-react';
 
-const Browser: React.FC = () => {
-  const [urlInput, setUrlInput] = useState('https://www.bing.com');
-  const [iframeUrl, setIframeUrl] = useState('https://www.bing.com');
+interface BrowserProps {
+  initialUrl?: string;
+}
+
+const Browser: React.FC<BrowserProps> = ({ initialUrl }) => {
+  const [urlInput, setUrlInput] = useState(initialUrl || 'https://www.bing.com');
+  const [iframeUrl, setIframeUrl] = useState(initialUrl || 'https://www.bing.com');
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const navigate = (e?: React.FormEvent) => {

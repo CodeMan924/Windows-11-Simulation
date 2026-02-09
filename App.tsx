@@ -143,8 +143,8 @@ const App: React.FC = () => {
       case 'notepad': return <Notepad {...commonProps} initialFile={win.payload} />;
       case 'word': return <Word {...commonProps} initialFile={win.payload} />;
       case 'copilot': return <Copilot />;
-      case 'browser': return <Browser />;
-      case 'terminal': return <Terminal {...commonProps} initialScript={win.payload} onLogOff={handleLogOff} />;
+      case 'browser': return <Browser initialUrl={win.payload?.url} />;
+      case 'terminal': return <Terminal {...commonProps} initialScript={win.payload} onLogOff={handleLogOff} addFolder={addFolder} />;
       case 'taskmanager': return <TaskManager windows={windows} closeWindow={closeWindow} />;
       case 'settings': return (
         <Settings 

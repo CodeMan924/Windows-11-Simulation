@@ -4,7 +4,7 @@ import {
   ChevronRight, Home, Download, Image, 
   FileText, Star, ArrowUp, Search, FolderPlus,
   LayoutGrid, List, FileCode, Plus, Monitor,
-  Type, Terminal, Edit2, Check, X
+  Type, Terminal, Edit2, Check, X, ChevronDown
 } from 'lucide-react';
 import { VirtualFile, AppID } from '../types';
 import { getIcon } from '../constants';
@@ -30,10 +30,14 @@ const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder, renameFi
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
 
-  // Reset rename state when selection changes
+  // State for Open With Menu
+  const [showOpenWithMenu, setShowOpenWithMenu] = useState(false);
+
+  // Reset rename state and menu when selection changes
   useEffect(() => {
     setIsRenaming(false);
     setRenameValue('');
+    setShowOpenWithMenu(false);
   }, [selectedFileId]);
 
   const navItems = [
@@ -131,11 +135,6 @@ const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder, renameFi
     : (files.find(f => f.id === currentFolder)?.name || currentFolder);
 
   const selectedFile = files.find(f => f.id === selectedFileId);
-
-  // Helper to check if file is a document type that supports Open With options
-  const isDocument = (file: VirtualFile) => {
-    return file.type === 'file' || file.type === 'batch'; 
-  };
 
   return (
     <div className="flex flex-col h-full bg-white text-slate-900 select-none">
@@ -362,40 +361,56 @@ const Explorer: React.FC<ExplorerProps> = ({ files, openApp, addFolder, renameFi
                      </button>
                  )}
 
-                 {isDocument(selectedFile) && (
-                   <>
-                     <button 
-                       onClick={() => openApp('word', selectedFile)}
-                       className="w-full flex items-center gap-3 px-4 py-2 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-300 rounded-lg transition-all shadow-sm group"
-                     >
-                        <div className="bg-blue-700 text-white p-1 rounded">
-                           <FileText size={16} />
-                        </div>
-                        <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">Open with Word</span>
-                     </button>
+                 {/* Open Options for Files */}
+                 {selectedFile.type !== 'folder' && (
+                    <div className="space-y-2">
+                       {/* Primary Open */}
+                       <button 
+                          onClick={() => handleFileOpen(selectedFile)}
+                          className="w-full flex items-center gap-3 px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg transition-all shadow-sm justify-center group"
+                       >
+                          <span className="text-sm font-medium">Open</span>
+                       </button>
 
-                     <button 
-                       onClick={() => openApp('notepad', selectedFile)}
-                       className="w-full flex items-center gap-3 px-4 py-2 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-300 rounded-lg transition-all shadow-sm group"
-                     >
-                        <div className="bg-slate-700 text-white p-1 rounded">
-                           <Type size={16} />
-                        </div>
-                        <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">Open with Notepad</span>
-                     </button>
-                   </>
-                 )}
-                 
-                 {selectedFile.type === 'batch' && (
-                    <button 
-                       onClick={() => openApp('terminal', selectedFile)}
-                       className="w-full flex items-center gap-3 px-4 py-2 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-300 rounded-lg transition-all shadow-sm group"
-                     >
-                        <div className="bg-black text-white p-1 rounded">
-                           <Terminal size={16} />
-                        </div>
-                        <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">Run in Terminal</span>
-                     </button>
+                       {/* Open With Dropdown */}
+                       <div className="relative">
+                          <button 
+                             onClick={() => setShowOpenWithMenu(!showOpenWithMenu)}
+                             className="w-full flex items-center justify-between px-4 py-2 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-300 rounded-lg transition-all shadow-sm group"
+                          >
+                             <span className="text-sm font-medium text-gray-700">Open with...</span>
+                             <ChevronDown size={14} className={`text-gray-500 transition-transform duration-200 ${showOpenWithMenu ? 'rotate-180' : ''}`} />
+                          </button>
+
+                          {showOpenWithMenu && (
+                             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-20 overflow-hidden animate-item flex flex-col p-1">
+                                <button 
+                                   onClick={() => openApp('notepad', selectedFile)}
+                                   className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 rounded-md text-left transition-colors"
+                                >
+                                   {getIcon('notepad', 16)}
+                                   <span className="text-sm text-gray-700">Notepad</span>
+                                </button>
+                                <button 
+                                   onClick={() => openApp('word', selectedFile)}
+                                   className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 rounded-md text-left transition-colors"
+                                >
+                                   {getIcon('word', 16)}
+                                   <span className="text-sm text-gray-700">Word</span>
+                                </button>
+                                {selectedFile.type === 'batch' && (
+                                   <button 
+                                      onClick={() => openApp('terminal', selectedFile)}
+                                      className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-100 rounded-md text-left transition-colors"
+                                   >
+                                      {getIcon('terminal', 16)}
+                                      <span className="text-sm text-gray-700">Terminal</span>
+                                   </button>
+                                )}
+                             </div>
+                          )}
+                       </div>
+                    </div>
                  )}
 
                  {/* Default Open for Folders */}
